@@ -5,7 +5,7 @@ import os
 import lmstudio as lms
 import random
 import whisper #stt
-import speech_recognition as sr #stt
+import speech_recognition as sr #stt 
 import openai #stt
 import sounddevice 
 import tkinter as tk 
@@ -21,6 +21,7 @@ lcd.clear()
 
 def greet():
     root = tk.Tk() #establishing main GUI window
+    root.wm_attributes("-topmost", True)
     root.title("DUCK")
     root.configure(background = "blue")
     root.maxsize(1000, 1000)
@@ -28,22 +29,31 @@ def greet():
     root.geometry("600x600+0+300")
     frame_count = 12 # frames in my amazing gif
     frames = [tk.PhotoImage(file='peak2.gif',format = 'gif -index %i' %(i)) for i in range(frame_count)]
+    is_active = True
     def update(ind):
         frame = frames[ind]
         ind += 1
         if ind >= frame_count:  # With this condition it will play gif infinitely
             ind = 0
         label.configure(image=frame)
-        root.after(100, update, ind)
+        if is_active:
+            root.after(100, update, ind)
+    after_id = root.after(0, update, 0)
+
+    def close():
+        root.after_cancel(after_id) 
+        global is_active
+        is_active = False
+        root.destroy()
 
     tk.Label(root, text="It's ducky time").pack()
-    tk.Label(root, text="Welcome...").pack()    
+    tk.Label(root, text="Welcome...").pack()
+    tk.Button(root, activebackground = "orange", activeforeground = "yellow", text="Click to continue", command = close).pack(pady=20)
     label = tk.Label(root)
     label.pack()
-    root.after(0, update, 0)
+    if is_active:
+        root.after(0, update, 0)
     root.mainloop()
-    time.sleep(3)
-    root.quit()
 
 SERVER_API_HOST = "192.168.110.98:1234" #establishes host address for LMStudio API
 lms.configure_default_client(SERVER_API_HOST) 
@@ -51,15 +61,15 @@ if lms.Client.is_valid_api_host(SERVER_API_HOST):
     print(f"An LM Studio API server instance is available at {SERVER_API_HOST}")
 else:
     print(f"No LM Studio API server instance found at {SERVER_API_HOST}")
-    sys.exit("Sorry, make sure LMStudio is running next time.")
+    sys.exit("Sorry, make sure LMStudio is running next time.\nYou need to have LMSTudio active in order to use DUCK")
 ai = lms.llm("mistralai/mistral-7b-instruct-v0.3") #llm model established here
-model = whisper.load_model("tiny.en") #tiny whisper model to save on resources
+model = whisper.load_model("tiny.en") #tiny whisper model to save on resources/time
 recognizer = sr.Recognizer()
 
 AM = open("hate.txt", 'r') #opens AM's amazing monologue which is stored in a text file. 
 script = AM.read() #script for testing purposes
 
-#displays text txt on the lcd screen with a delay, delay to create a scrolling effect. 
+#displays text on the lcd screen with a delay to create a scrolling effect. 
 def lcd_text(txt, delay):
     chunk = 0
     line = 1
@@ -90,9 +100,9 @@ def listen():
                 print("Speak.")
                 audio = recognizer.listen(source)
                 time.sleep(3)
-            with open("temp.wav", "wb") as f:
-                f.write(audio.get_wav_data())
-            print("Processing...")
+            with open("temp.wav", "wb") as file:
+                file.write(audio.get_wav_data())
+            print("Processing, please wait...")
             result = model.transcribe("temp.wav", fp16 = False)
             print("Complete.")
             text = result["text"]
@@ -102,13 +112,13 @@ def listen():
 
 def process(txt):
     mp3_fp = BytesIO()
-    tts = gTTS(txt, lang='en', tld='co.uk')
+    tts = gTTS(txt, lang='en', tld='com.au')
     tts.write_to_fp(mp3_fp)
     return mp3_fp
 
 def speak(txt):
     mixer.init()
-    print("Processing...")
+    print("Processing, pleease wait...")
     sound = process(txt)
     print("Complete.")
     sound.seek(0)
@@ -121,7 +131,7 @@ def answer():
     response = str(ai.respond(speech))
     print("You said:", speech)
     print("Response:", response)
-    speak(f"You said: {speech} and I say {response}")
+    speak(f"Quack! {response}")
 
 def set_text_speed(): #sets the text speed with a number from 1 to 10, with one being the slowest and 10 being the fatest.
     while True:
@@ -130,8 +140,6 @@ def set_text_speed(): #sets the text speed with a number from 1 to 10, with one 
             if not (spd >= 0.01 and spd <= 0.10):
                 set_text_speed()
             return spd
-        except TypeError:
-            pass
         except ValueError:
             pass
 
@@ -141,13 +149,14 @@ def main():
         try:
             ans = str(input("Would you like to activate DUCK? y for yes, n for no. \nYou may exit using Ctrl+D.\n"))
             if ans.lower().strip() == 'y' or ans.lower().strip() == 'yes':
-                spd = set_text_speed()
                 greet()
-                print("Check this out.")
+                spd = set_text_speed()
+                print("Check this out, take a look at the LCD screen--->")
+                time.sleep(1)
                 lcd_text("Hello world. Do not fear, for the DUCK is here!", spd)
-                lcd_text("ducktastic am I right fellas")
+                lcd_text("What can I help you with?", spd)
                 print(r"""
-                                 ⢀⣤⣶⣾⡿⣷⣶⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                                ⢀⣤⣶⣾⡿⣷⣶⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
                         ⠀⠀⠀⠀⠀⠀⣴⡿⠋⠁⢠⣷⣇⠈⠻⣷⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
                         ⠀⠀⠀⠀⠀⠀⡿⠁⣶⠀⢸⣿⡿⠋⠀⠹⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
                         ⠀⠀⠀⠀⠀⢰⠿⡾⢻⡆⠀⠈⠁⠀⠀⠀⢿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -178,6 +187,9 @@ def main():
                         """)
                 while True:
                     try:
+                        ans = input(f"Press any key to ask a question, use Ctrl + D to exit.\nIf you want to change your text speed, press t.")
+                        if ans.lower().strip() == "t":
+                            set_text_speed()
                         answer()
                     except EOFError:
                         sys.exit("\nThank you for using DUCK. Until next time!")
