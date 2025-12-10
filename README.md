@@ -66,7 +66,7 @@ pip install module
 ```
 Create the program:
 
-```
+```python
 import RPi.GPIO as GPIO     ###various modules for speech-to-text, text-to-speech, lcd screen,and GPIO 
 import time
 import sys 
