@@ -17,43 +17,38 @@ from pygame import mixer #sound output from USB speaker
 GPIO.setmode(GPIO.BCM) #GPIO and LCD setup
 GPIO.setwarnings(False)
 lcd = LCD()
-lcd.clear()
-
-def greet():
+lcd.clear()  
+def greet(): 
     root = tk.Tk() #establishing main GUI window
     root.wm_attributes("-topmost", True)
-    root.title("DUCK")
-    root.configure(background = "blue")
-    root.maxsize(1000, 1000)
-    root.minsize(250, 250)
-    root.geometry("600x600+0+300")
+    root.focus_set()
+    root.title("DUCK") #titles the window
+    root.configure(background = "blue") #sets background color
+    root.geometry("600x600+0+100") #establishing position and size of the window
     frame_count = 12 # frames in my amazing gif
+
     frames = [tk.PhotoImage(file='peak2.gif',format = 'gif -index %i' %(i)) for i in range(frame_count)]
-    is_active = True
+    after_id = None 
     def update(ind):
+        global after_id
         frame = frames[ind]
         ind += 1
-        if ind >= frame_count:  # With this condition it will play gif infinitely
+        if ind >= frame_count:  # With this condition gif will repeat until window close.
             ind = 0
         label.configure(image=frame)
-        if is_active:
-            root.after(100, update, ind)
+        after_id = root.after(100, update, ind)
     after_id = root.after(0, update, 0)
-
     def close():
-        root.after_cancel(after_id) 
-        global is_active
-        is_active = False
+        root.after_cancel(after_id)
         root.destroy()
 
     tk.Label(root, text="It's ducky time").pack()
     tk.Label(root, text="Welcome...").pack()
-    tk.Button(root, activebackground = "orange", activeforeground = "yellow", text="Click to continue", command = close).pack(pady=20)
+    tk.Button(root, activebackground = "orange", activeforeground = "yellow", text="Click to continue", command = close).pack(pady=20) 
+    #sets up the button and makes it close the window when pressed
     label = tk.Label(root)
     label.pack()
-    if is_active:
-        root.after(0, update, 0)
-    root.mainloop()
+    root.mainloop() #begins the event loop
 
 SERVER_API_HOST = "192.168.110.98:1234" #establishes host address for LMStudio API
 lms.configure_default_client(SERVER_API_HOST) 
@@ -62,7 +57,7 @@ if lms.Client.is_valid_api_host(SERVER_API_HOST):
 else:
     print(f"No LM Studio API server instance found at {SERVER_API_HOST}")
     sys.exit("Sorry, make sure LMStudio is running next time.\nYou need to have LMSTudio active in order to use DUCK")
-ai = lms.llm("mistralai/mistral-7b-instruct-v0.3") #llm model established here
+ai = lms.llm("phi-4-mini-instruct") #using an llm called phi-4-mini  
 model = whisper.load_model("tiny.en") #tiny whisper model to save on resources/time
 recognizer = sr.Recognizer()
 
@@ -70,7 +65,7 @@ AM = open("hate.txt", 'r') #opens AM's amazing monologue which is stored in a te
 script = AM.read() #script for testing purposes
 
 #displays text on the lcd screen with a delay to create a scrolling effect. 
-def lcd_text(txt, delay):
+def lcd_text(txt, delay = 0.06):
     chunk = 0
     line = 1
     l = line 
@@ -99,37 +94,37 @@ def listen():
             with sr.Microphone() as source:
                 print("Speak.")
                 audio = recognizer.listen(source)
-                time.sleep(3)
+                time.sleep(5)
             with open("temp.wav", "wb") as file:
-                file.write(audio.get_wav_data())
+                file.write(audio.get_wav_data()) #writes audio to a temporary file 
             print("Processing, please wait...")
-            result = model.transcribe("temp.wav", fp16 = False)
-            print("Complete.")
+            lcd_text("Processing, please wait...", spd)
+            result = model.transcribe("temp.wav", fp16 = False) #transcribes the temporary file
             text = result["text"]
-            return text
+            return text #returns a string, the user's voice input as a string.
         except Exception as e:
             print("Error", e)
 
 def process(txt):
     mp3_fp = BytesIO()
-    tts = gTTS(txt, lang='en', tld='com.au')
+    tts = gTTS(txt, lang='en', tld='co.uk') # change tld to co.uk or co.au for different dialects
     tts.write_to_fp(mp3_fp)
     return mp3_fp
 
 def speak(txt):
     mixer.init()
-    print("Processing, pleease wait...")
     sound = process(txt)
     print("Complete.")
+    lcd_text("Complete.", spd)
     sound.seek(0)
     mixer.music.load(sound, "mp3")
     mixer.music.play()
-    time.sleep(60)
+    time.sleep(1)
 
 def answer():
     speech = listen()
-    response = str(ai.respond(speech))
     print("You said:", speech)
+    response = str(ai.respond(speech))
     print("Response:", response)
     speak(f"Quack! {response}")
 
@@ -150,6 +145,7 @@ def main():
             ans = str(input("Would you like to activate DUCK? y for yes, n for no. \nYou may exit using Ctrl+D.\n"))
             if ans.lower().strip() == 'y' or ans.lower().strip() == 'yes':
                 greet()
+                global spd 
                 spd = set_text_speed()
                 print("Check this out, take a look at the LCD screen--->")
                 time.sleep(1)
@@ -185,21 +181,26 @@ def main():
                         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠁⢀⣾⣃⣤⣼⠿⡿⢛⣻⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
                         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⠟⠛⠻⠿⠦⡴⠶⠿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
                         """)
+                print("If you ever need to change your text speed, enter t when prompted to ask a question.")
                 while True:
                     try:
-                        ans = input(f"Press any key to ask a question, use Ctrl + D to exit.\nIf you want to change your text speed, press t.")
-                        if ans.lower().strip() == "t":
+                        ans = input(f"Press enter to ask a question, use Ctrl + D to exit.\n")
+                        if ans.lower().strip() == "t": #t can be used to change the text speed.
                             set_text_speed()
-                        answer()
+                        else:
+                            answer()
                     except EOFError:
-                        sys.exit("\nThank you for using DUCK. Until next time!")
- 
+                        print("\nThank you for using DUCK. Until next time!")
+                        lcd_text("this DUCK is outta here! Have a good one!")
+                        sys.exit() #exits the program 
             else:
                 sys.exit("\nSee ya later, alligator!")
         except ValueError:
             continue
         except EOFError:
-            sys.exit("\nThank you for using DUCK. Until next time!")
+            print("\nThank you for using DUCK. Until next time!")
+            lcd_text("this DUCK is outta here! Have a good one!")
+            sys.exit() #CTRL + D will exit the program unless a background process is happening.
 
 if __name__ == "__main__":
     main()
